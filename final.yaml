@@ -1,0 +1,567 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: final
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: db
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registrysecret
+  namespace: final
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "registry.rebrainme.com": {
+          "auth": "cHVsbC1jcmVkczpnbHBhdC12bnBMX2l2N1d4ZHpCMlFRdUtFRQ=="
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: librespeed-secret
+  namespace: final
+type: Opaque
+data:
+  DB_PASSWORD: cGFzc3dvcmQ=
+  DB_USER: dXNlcg==
+  DB_USERNAME: dXNlcg==
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: db
+  labels:
+    app: db
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=
+  MYSQL_PASSWORD: cGFzc3dvcmQ=
+  DB_PASSWORD: cGFzc3dvcmQ=
+  DB_USERNAME: dXNlcg==
+  DB_USER: dXNlcg==
+  MYSQL_USER: dXNlcg==
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: librespeed-env
+  namespace: final
+data:
+  TITLE_LibreSpeed: "true"
+  MODE: "frontend"
+  TELEMETRY: "true"
+  ENABLE_ID_OBFUSCATION: "true"
+  REDACT_IP_ADDRESSES: "false"
+  DB_TYPE: "mysql"
+  DB_CONNECTION: "mysql"
+  DB_HOSTNAME: "mysql-headless.db.svc.cluster.local"
+  DB_PORT: "3306"
+  DB_NAME: "librespeed"
+---
+apiVersion: v1
+data:
+  telemetry_mysql.sql: |
+    SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+    SET AUTOCOMMIT = 0;
+    START TRANSACTION;
+    SET time_zone = "+00:00";
+
+
+    /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+    /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+    /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+    /*!40101 SET NAMES utf8mb4 */;
+
+    --
+    -- Database: `speedtest_telemetry`
+    --
+
+    -- --------------------------------------------------------
+
+    --
+    -- Table structure for table `speedtest_users`
+    --
+
+    CREATE TABLE `speedtest_users` (
+      `id` int(11) NOT NULL,
+      `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `ip` text NOT NULL,
+      `ispinfo` text,
+      `extra` text,
+      `ua` text NOT NULL,
+      `lang` text NOT NULL,
+      `dl` text,
+      `ul` text,
+      `ping` text,
+      `jitter` text,
+      `log` longtext
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    --
+    -- Indexes for dumped tables
+    --
+
+    --
+    -- Indexes for table `speedtest_users`
+    --
+    ALTER TABLE `speedtest_users`
+      ADD PRIMARY KEY (`id`);
+
+    --
+    -- AUTO_INCREMENT for dumped tables
+    --
+
+    --
+    -- AUTO_INCREMENT for table `speedtest_users`
+    --
+    ALTER TABLE `speedtest_users`
+      MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;COMMIT;
+
+    /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+    /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+    /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+kind: ConfigMap
+metadata:
+  name: mysql-sql
+  namespace: final
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: librespeed-servers
+  namespace: final
+data:
+  servers.json: |
+    [
+      {
+        "name": "Helsinki, Finland (1) (Hetzner)",
+        "server": "//fi1.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Helsinki, Finland (2) (Hetzner)",
+        "server": "https://fi2.backend.librespeed.org:8443/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name":"Helsinki, Finland (3) (Hetzner)",
+        "server":"//fi.openspeed.org",
+        "dlURL":"garbage.php",
+        "ulURL":"empty.php",
+        "pingURL":"empty.php",
+        "getIpURL":"getIP.php"
+      },
+      {
+        "name": "Helsinki, Finland (4) (Hetzner)",
+        "server": "https://ls.fexiven.de:8443/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Helsinki, Finland (5) (Hetzner)",
+        "server": "//fast.kabi.tk/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Paris, France (Hurricane Electric)",
+        "server": "//librespeed.louifox.house/",
+        "dlURL": "backend/garbage.php",
+        "ulURL": "backend/empty.php",
+        "pingURL": "backend/empty.php",
+        "getIpURL": "backend/getIP.php"
+      },
+      {
+        "name": "Paris, France (online.net)",
+        "server": "//fr1.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Falkenstein, Germany (Hetzner)",
+        "server": "//de4.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Nuremberg, Germany (1) (Hetzner)",
+        "server": "//de1.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Nuremberg, Germany (2) (netcup)",
+        "server": "//de2.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Nuremberg, Germany (3) (Hetzner)",
+        "server": "//de3.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Nuremberg, Germany (4) (Hetzner)",
+        "server": "//de5.backend.librespeed.org/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Nuremberg, Germany (5) (Hetzner)",
+        "server": "https://speedtest.ciapa.tech/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name":"Bari, Italy (GARR)",
+        "server":"//st-be-ba1.infra.garr.it",
+        "dlURL":"garbage.php",
+        "ulURL":"empty.php",
+        "pingURL":"empty.php",
+        "getIpURL":"getIP.php"
+      },
+      {
+        "name":"Bologna, Italy (GARR)",
+        "server":"//st-be-bo1.infra.garr.it",
+        "dlURL":"garbage.php",
+        "ulURL":"empty.php",
+        "pingURL":"empty.php",
+        "getIpURL":"getIP.php"
+      },
+      {
+        "name":"Roma, Italy (GARR)",
+        "server":"//st-be-rm2.infra.garr.it",
+        "dlURL":"garbage.php",
+        "ulURL":"empty.php",
+        "pingURL":"empty.php",
+        "getIpURL":"getIP.php"
+      },
+      {
+        "name": "Vilnius, Lithuania (Time4VPS)",
+        "server": "//librespeed.fossdaily.xyz/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Las Vegas, United States (BuyVM)",
+        "server": "https://lv1.backend.librespeed.nixnet.services/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "New York, United States (BuyVM)",
+        "server": "https://ny1.backend.librespeed.nixnet.services/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Roost, Luxembourg (BuyVM)",
+        "server": "https://lux1.backend.librespeed.nixnet.services/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Borås, Sweden (Linux.Pizza)",
+        "server": "//se1.speedtest.linux.pizza/",
+        "dlURL": "garbage.php",
+        "ulURL": "empty.php",
+        "pingURL": "empty.php",
+        "getIpURL": "getIP.php"
+      },
+      {
+        "name": "Amsterdam, Netherlands",
+        "server": "http://spd-nlsrv.hostkey.com/",
+        "id": 1,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      },
+      {
+        "name": "Helsinki, Finland",
+        "server": "http://spd-fisrv.hostkey.com/",
+        "id": 2,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      },
+      {
+        "name": "NewYork, USA",
+        "server": "http://spd-uswb.hostkey.com/",
+        "id": 3,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      },
+      {
+        "name": "Frankfurt, Germany",
+        "server": "http://spd-desrv.hostkey.com/",
+        "id": 4,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      },
+      {
+        "name": "Reykjavik, Iceland",
+        "server": "http://spd-icsrv.hostkey.com/",
+        "id": 5,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      },
+      {
+        "name": "Türkiy, Istanbul",
+        "server": "http://spd-tr.hostkey.com/",
+        "id": 6,
+        "dlURL": "garbage",
+        "ulURL": "empty",
+        "pingURL": "empty",
+        "getIpURL": "getIP"
+      }
+    ]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-configmap
+  namespace: db
+  labels:
+    app: db
+data:
+  MYSQL_DATABASE: "librespeed"
+  DB_TYPE: "mysql"
+  DB_CONNECTION: "mysql"
+  DB_HOSTNAME: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: "librespeed"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librespeed
+  namespace: final
+  labels:
+    app.kubernetes.io/instance: librespeed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: librespeed
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: librespeed
+    spec:
+      initContainers:
+        - name: migrate-db
+          image: mysql:5.7
+          command:
+            - sh
+            - -c
+            - |
+              until mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "SELECT 1"; do
+                echo "Ждем mysql в namespace db..."
+                sleep 5
+              done
+              echo "MySQL готова"
+              echo "Проверка существования базы данных и таблиц..."
+              if mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "USE librespeed; SELECT 1 FROM speedtest_users LIMIT 1;" ; then 
+                echo "База данных и таблица существуют. Миграции не требуются."
+              else
+                echo "База данных или таблица не существуют. Выполняем миграции..."
+                mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD librespeed < /telemetry_mysql.sql
+              fi
+          envFrom:
+          - configMapRef:
+              name: librespeed-env
+          - secretRef:
+              name: librespeed-secret
+          volumeMounts:
+            - name: mysql-sql
+              mountPath: /telemetry_mysql.sql
+              subPath: telemetry_mysql.sql
+      imagePullSecrets:
+        - name: registrysecret
+      containers:
+      - name: librespeed
+        image: registry.rebrainme.com/workshops/middle/kubernetes-local/newplatform_autochecks/speedtest:5.3
+        ports:
+          - containerPort: 80
+        envFrom:
+          - configMapRef:
+              name: librespeed-env
+          - secretRef:
+              name: librespeed-secret
+        volumeMounts:
+          - name: servers-volume
+            mountPath: /servers.json
+            subPath: servers.json
+      volumes:
+      - name: servers-volume
+        configMap:
+          name: librespeed-servers
+      - name: mysql-sql
+        configMap:
+          name: mysql-sql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: db
+  labels:
+    app: db
+spec:
+  serviceName: mysql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        envFrom:
+          - configMapRef:
+              name: mysql-configmap
+          - secretRef:
+              name: mysql-secret
+        ports:
+          - containerPort: 3306
+        volumeMounts:
+        - name: mysql-pvc
+          mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-pvc
+      labels:
+        app: db
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: local-path
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: librespeed
+  namespace: final
+  labels:
+    app.kubernetes.io/instance: librespeed
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/instance: librespeed
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: db
+  labels:
+    app: db
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-headless
+  namespace: db
+  labels:
+    app: db
+spec:
+  clusterIP:
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+    app: db
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: librepeed-ingress
+  namespace: final
+spec:
+  rules:
+    - host: 84.201.168.94.nip.io
+      http:
+        paths:
+          - path : /
+            pathType : Prefix
+            backend :
+              service :
+                name : librespeed
+                port :
+                  number : 80
