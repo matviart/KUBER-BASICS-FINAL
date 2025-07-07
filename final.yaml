@@ -402,23 +402,29 @@ spec:
     spec:
       initContainers:
         - name: migrate-db
-          image: mysql:5.7
+          image: mysql:8.0
           command:
             - sh
             - -c
             - |
-              until mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "SELECT 1"; do
-                echo "Ожидание доступности MySQL"
-                sleep 5
-              done
-              echo "MySQL доступна"
-              echo "Проверяем, существует ли база данных librespeed и таблица speedtest_users"
-              if mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "USE librespeed; SELECT 1 FROM speedtest_users LIMIT 1;" ; then 
-                echo "База данных и таблица существуют"
-              else
-                echo "База данных или таблица не существуют, делаем миграцию"
-                mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD librespeed < /telemetry_mysql.sql
-              fi
+          # Ожидание доступности MySQL
+          while ! mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "SELECT 1" &> /dev/null; do
+            echo "Ожидание готовности MySQL сервера..."
+            sleep 3
+          done
+          
+          # Проверка необходимости миграции
+          CHECK_TABLE=$(mysql -N -s -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e \
+            "SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_schema = 'librespeed' 
+            AND table_name = 'speedtest_users'")
+          
+          if [ "$CHECK_TABLE" -eq 1 ]; then
+            echo "Структура базы данных актуальна"
+          else
+            echo "Применение миграций базы данных"
+            mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD librespeed < /migration-script.sql
+          fi
           envFrom:
           - configMapRef:
               name: librespeed-env
@@ -553,6 +559,11 @@ kind: Ingress
 metadata:
   name: librepeed-ingress
   namespace: final
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    nginx.ingress.kubernetes.io/proxy-set-header-x-real-ip: "$remote_addr"
+    nginx.ingress.kubernetes.io/proxy-set-header-x-forwarded-for: "$proxy_add_x_forwarded_for"
 spec:
   rules:
     - host: 84.201.168.94.nip.io
