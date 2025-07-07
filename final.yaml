@@ -423,7 +423,7 @@ spec:
             echo "Структура базы данных актуальна"
           else
             echo "Применение миграций базы данных"
-            mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD librespeed < /migration-script.sql
+            mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD librespeed < /telemetry_mysql.sql
           fi
           envFrom:
           - configMapRef:
@@ -566,7 +566,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-set-header-x-forwarded-for: "$proxy_add_x_forwarded_for"
 spec:
   rules:
-    - host: 84.201.168.94.nip.io
+    - host: 158.160.167.203.nip.io
       http:
         paths:
           - path : /
