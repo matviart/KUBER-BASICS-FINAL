@@ -28,9 +28,9 @@ stringData:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: librespeed-secret 
-  namespace: final 
-type: Opaque 
+  name: librespeed-secret
+  namespace: final
+type: Opaque
 data:
   DB_PASSWORD: cGFzc3dvcmQ=
   DB_USER: dXNlcg==
@@ -55,8 +55,8 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: librespeed-env 
-  namespace: final 
+  name: librespeed-env
+  namespace: final
 data:
   TITLE_LibreSpeed: "true"
   MODE: "frontend"
@@ -139,8 +139,8 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: librespeed-servers 
-  namespace: final 
+  name: librespeed-servers
+  namespace: final
 data:
   servers.json: |
     [
@@ -368,6 +368,7 @@ data:
       }
     ]
 ---
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -402,7 +403,7 @@ spec:
     spec:
       initContainers:
         - name: migrate-db
-          image: mysql:5.7 
+          image: mysql:8.0
           command:
             - sh
             - -c
@@ -413,7 +414,7 @@ spec:
               done
               echo "MySQL готова"
               echo "Проверка существования базы данных и таблиц..."
-              if mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "USE librespeed; SELECT 1 FROM speedtest_users LIMIT 1;" ; then 
+              if mysql -h mysql-headless.db.svc.cluster.local -u $DB_USERNAME -p$DB_PASSWORD -e "USE librespeed; SELECT 1 FROM speedtest_users LIMIT 1;" ; then
                 echo "База данных и таблица существуют. Миграции не требуются."
               else
                 echo "База данных или таблица не существуют. Выполняем миграции..."
@@ -425,9 +426,9 @@ spec:
           - secretRef:
               name: librespeed-secret
           volumeMounts:
-            - name: mysql-sql 
+            - name: mysql-sql
               mountPath: /telemetry_mysql.sql
-              subPath: telemetry_mysql.sql 
+              subPath: telemetry_mysql.sql
       imagePullSecrets:
         - name: registrysecret
       containers:
@@ -437,17 +438,17 @@ spec:
           - containerPort: 80
         envFrom:
           - configMapRef:
-              name: librespeed-env 
+              name: librespeed-env
           - secretRef:
-              name: librespeed-secret 
+              name: librespeed-secret
         volumeMounts:
           - name: servers-volume
-            mountPath: /servers.json 
-            subPath: servers.json 
+            mountPath: /servers.json
+            subPath: servers.json
       volumes:
-      - name: servers-volume 
+      - name: servers-volume
         configMap:
-          name: librespeed-servers 
+          name: librespeed-servers
       - name: mysql-sql
         configMap:
           name: mysql-sql
@@ -472,10 +473,10 @@ spec:
     spec:
       containers:
       - name: mysql
-        image: mysql:5.7          
+        image: mysql:8.0
         envFrom:
           - configMapRef:
-              name: mysql-configmap 
+              name: mysql-configmap
           - secretRef:
               name: mysql-secret
         ports:
@@ -494,7 +495,6 @@ spec:
         requests:
           storage: 1Gi
       storageClassName: local-path
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -509,7 +509,7 @@ spec:
   ports:
     - protocol: TCP
       name: http
-      port: 80 
+      port: 80
       targetPort: 80
       nodePort: 30080
 ---
@@ -541,25 +541,27 @@ spec:
   selector:
     app: db
 ---
-apiVersion: networking.k8s.io/v1 
-kind: Ingress 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: librepeed-ingress 
+  name: librespeed-ingress
   namespace: final
+  labels:
+    app.kubernetes.io/instance: librespeed
   annotations:
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Real-IP $remote_addr;
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    nginx.ingress.kubernetes.io/proxy-set-header-x-real-ip: "$remote_addr"
+    nginx.ingress.kubernetes.io/proxy-set-header-x-forwarded-for: "$proxy_add_x_forwarded_for"
 spec:
   rules:
     - host: 158.160.167.203.nip.io
       http:
         paths:
           - path : /
-            pathType : Prefix 
+            pathType : Prefix
             backend :
               service :
-                name : librespeed 
+                name : librespeed
                 port :
                   number : 80
